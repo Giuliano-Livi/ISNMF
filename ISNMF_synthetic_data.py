@@ -132,7 +132,7 @@ W = np.array((r,n)) #weighting function matrix
 S = np.random.rand(m,r)
 
 #exctract existing synergies from the Ninapro dataset
-trials = load_ninapro_data('S1_A1_E1.mat') 
+trials = load_ninapro_data('synthetic/S1_A1_E1.mat') 
 W = generate_W(trials, r, n)
 
 #graphical representation of the synergies extracted from the Ninapro dataset
