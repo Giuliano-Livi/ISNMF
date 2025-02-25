@@ -75,7 +75,7 @@ class ISNMF:
             
             # Update H
             numerator_H = self.W.T @ self.V
-            denominator_H = self.W.T @ self.W @ self.H + self.gamma*(self.H) * 1e-1
+            denominator_H = self.W.T @ self.W @ self.H #+ self.gamma*(self.H) * 1e-1
             self.H *= numerator_H / (denominator_H + 1e-10)
             self.H = np.maximum(self.H, self.epsilon)
             
@@ -119,8 +119,8 @@ def avaraging(array, point_to_avarage):
 
 
 #test section
-M = extract_M_matrix_from_dataset('dataset/rep2_power.bag')
-r = 3 #number of synergies
+M = extract_M_matrix_from_dataset('dataset/rep0_power.bag')
+r = 2 #number of synergies
 
 #using the ISNMF algorithm to extract the synergies
 model = ISNMF(M, r, beta=5, gamma=5, mu=0.4, epsilon=1e-5, t_max=200)
@@ -129,26 +129,35 @@ model = ISNMF(M, r, beta=5, gamma=5, mu=0.4, epsilon=1e-5, t_max=200)
 for i in range(4):
     W_found, H_found = model.update(model.V)
 
+    #graphical representation of the M input matrix
+    plt.figure(figsize=(8, 9)) 
+    plt.subplot(3,1,1)
+    for j in range(model.V.shape[0]):
+        x = np.linspace(0, M.shape[1] , M.shape[1])
+        plt.plot(x, model.V[j], linestyle='-', label='muscle {}'.format(j))
+    plt.title("components of the M input matrix")
+    plt.xlabel("samples")
+    plt.ylabel("muscles activations")
+    plt.legend(loc='best', fontsize='small', markerscale=1)
+
     #graphical representation of the W_found matrix
-    plt.subplot(2,1,1)
+    plt.subplot(3,1,2)
     for j in range(W_found.shape[0]):
         x = np.linspace(0, W_found.shape[1] , W_found.shape[1])
-        plt.plot(x, W_found[j], 'o', label='muscle {}'.format(j))
+        plt.plot(x, W_found[j], 'o')
     plt.title("components of the W matrix(activation matrix)")
     plt.xlabel("sinergy")
     plt.ylabel("muscles activation")
-    #plt.legend(loc='best', fontsize='small', markerscale=1)
-    plt.ylim(-1, 4)
+    plt.ylim(-0.1, 2)
 
     #graphical representation of the H_found matrix
-    plt.subplot(2,1,2)
+    plt.subplot(3,1,3)
     for j in range(H_found.shape[0]):
         x = np.linspace(0, M.shape[1] , M.shape[1])
-        H_found[j] = avaraging(H_found[j], 50)
+        H_found[j] = avaraging(H_found[j], 20)
         plt.plot(x, H_found[j], linestyle='-')
     plt.title("components of the H matrix(activation matrix)")
     plt.xlabel("samples")
     plt.ylabel("sinergy activations")
     plt.tight_layout()
     plt.show()
-
