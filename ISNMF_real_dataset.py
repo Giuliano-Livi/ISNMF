@@ -125,22 +125,25 @@ r = 3 #number of synergies
 #using the ISNMF algorithm to extract the synergies
 model = ISNMF(M, r, beta=5, gamma=5, mu=0.4, epsilon=1e-5, t_max=200)
 
+#graphical representation section
 for i in range(4):
     W_found, H_found = model.update(model.V)
+
+    #graphical representation of the W_found matrix
     plt.subplot(2,1,1)
     for j in range(W_found.shape[0]):
         x = np.linspace(0, W_found.shape[1] , W_found.shape[1])
-        #graphical representation of all the founded synergies and original once overlapped
         plt.plot(x, W_found[j], 'o', label='muscle {}'.format(j))
     plt.title("components of the W matrix(activation matrix)")
     plt.xlabel("sinergy")
     plt.ylabel("muscles activation")
     #plt.legend(loc='best', fontsize='small', markerscale=1)
     plt.ylim(-1, 4)
+
+    #graphical representation of the H_found matrix
     plt.subplot(2,1,2)
     for j in range(H_found.shape[0]):
         x = np.linspace(0, M.shape[1] , M.shape[1])
-        #graphical representation of all the founded synergies and original once overlapped
         H_found[j] = avaraging(H_found[j], 50)
         plt.plot(x, H_found[j], linestyle='-')
     plt.title("components of the H matrix(activation matrix)")
@@ -148,7 +151,4 @@ for i in range(4):
     plt.ylabel("sinergy activations")
     plt.tight_layout()
     plt.show()
-
-
-#plottare sia H che W e filtrarli in modo da capire meglio cosa viene
 
