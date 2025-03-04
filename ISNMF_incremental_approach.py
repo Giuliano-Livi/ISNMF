@@ -121,7 +121,7 @@ def avaraging(array, point_to_avarage):
 
 #model training using the rep0_power.bag
 M = extract_M_matrix_from_dataset('dataset/rep0_power.bag')
-r = 3
+r = 2
 model = ISNMF(M, r, beta=5, gamma=5, mu=0.4, epsilon=1e-5, t_max=200)
 W_found, H_found = model.update(model.V)
 #graphical representation of the M input matrix
