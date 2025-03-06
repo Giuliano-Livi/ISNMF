@@ -9,11 +9,11 @@ class ISNMF:
         n = number of muscles
         r = number of synergies
         k = number of samples
-        beta  : Regularization parameter for basis matrix W
-        gamma : Sparsity constraint for encoding matrix H
-        mu    : Forgetting factor (discounts old data)
+        beta    : Regularization parameter for basis matrix W
+        gamma   : Regularization parameter for activation matrix H
+        mu      : Forgetting factor (discounts old data)
         epsilon : Convergence threshold
-        t_max  : Maximum number of iterations per update
+        t_max   : Maximum number of iterations per update
         """
         self.V = V
         self.n = V.shape[0]
@@ -122,40 +122,41 @@ def avaraging(array, point_to_avarage):
 #model training using the rep0_power.bag
 M = extract_M_matrix_from_dataset('dataset/rep0_power.bag')
 r = 2
-model = ISNMF(M, r, beta=5, gamma=5, mu=0.4, epsilon=1e-5, t_max=200)
-W_found, H_found = model.update(model.V)
-#graphical representation of the M input matrix
-plt.figure(figsize=(8, 9)) 
-plt.subplot(3,1,1)
-for j in range(model.V.shape[0]):
-    x = np.linspace(0, M.shape[1] , M.shape[1])
-    plt.plot(x, model.V[j], linestyle='-', label='muscle {}'.format(j))
-plt.title("components of the M input matrix")
-plt.xlabel("samples")
-plt.ylabel("muscles activations")
-plt.legend(loc='best', fontsize='small', markerscale=1)
+model = ISNMF(M, r, beta=32, gamma=32, mu=0.4, epsilon=1e-5, t_max=200)
+for i in range(5):
+    W_found, H_found = model.update(model.V)
+    #graphical representation of the M input matrix
+    plt.figure(figsize=(8, 9)) 
+    plt.subplot(3,1,1)
+    for j in range(model.V.shape[0]):
+        x = np.linspace(0, M.shape[1] , M.shape[1])
+        plt.plot(x, model.V[j], linestyle='-', label='muscle {}'.format(j))
+    plt.title("components of the M input matrix")
+    plt.xlabel("samples")
+    plt.ylabel("muscles activations")
+    plt.legend(loc='best', fontsize='small', markerscale=1)
 
-#graphical representation of the W_found matrix
-plt.subplot(3,1,2)
-for j in range(W_found.shape[0]):
-    x = np.linspace(0, W_found.shape[1] , W_found.shape[1])
-    plt.plot(x, W_found[j], 'o')
-plt.title("components of the W matrix(activation matrix)")
-plt.xlabel("sinergy")
-plt.ylabel("muscles activation")
-plt.ylim(-0.1, 2)
+    #graphical representation of the W_found matrix
+    plt.subplot(3,1,2)
+    for j in range(W_found.shape[0]):
+        x = np.linspace(0, W_found.shape[1] , W_found.shape[1])
+        plt.plot(x, W_found[j], 'o')
+    plt.title("components of the W matrix(activation matrix)")
+    plt.xlabel("sinergy")
+    plt.ylabel("muscles activation")
+    plt.ylim(-0.1, 2)
 
-#graphical representation of the H_found matrix
-plt.subplot(3,1,3)
-for j in range(H_found.shape[0]):
-    x = np.linspace(0, M.shape[1] , M.shape[1])
-    H_found[j] = avaraging(H_found[j], 20)
-    plt.plot(x, H_found[j], linestyle='-')
-plt.title("components of the H matrix(activation matrix)")
-plt.xlabel("samples")
-plt.ylabel("sinergy activations")
-plt.tight_layout()
-plt.show()
+    #graphical representation of the H_found matrix
+    plt.subplot(3,1,3)
+    for j in range(H_found.shape[0]):
+        x = np.linspace(0, M.shape[1] , M.shape[1])
+        H_found[j] = avaraging(H_found[j], 20)
+        plt.plot(x, H_found[j], linestyle='-')
+    plt.title("components of the H matrix(activation matrix)")
+    plt.xlabel("samples")
+    plt.ylabel("sinergy activations")
+    plt.tight_layout()
+    plt.show()
 
 
 

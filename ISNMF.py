@@ -8,11 +8,11 @@ class ISNMF:
         n = number of muscles
         r = number of synergies
         k = number of samples
-        beta  : Regularization parameter for basis matrix W
-        gamma : Sparsity constraint for encoding matrix H
-        mu    : Forgetting factor (discounts old data)
+        beta    : Regularization parameter for basis matrix W
+        gamma   : Regularization parameter for activation matrix H
+        mu      : Forgetting factor (discounts old data)
         epsilon : Convergence threshold
-        t_max  : Maximum number of iterations per update
+        t_max   : Maximum number of iterations per update
         """
         self.V = V
         self.n = V.shape[0]
