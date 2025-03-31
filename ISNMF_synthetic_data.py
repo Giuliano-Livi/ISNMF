@@ -9,6 +9,16 @@ def load_ninapro_data(mat_file):
     trials.append({'emg': emg})
     return trials
 
+#function to filter the data
+def avaraging(array, point_to_avarage):
+    i_prev = 0
+    i = 0
+    while i < array.shape[0]:
+        i = i + point_to_avarage
+        mean = np.mean(array[i_prev : i])
+        array[i_prev : i] = mean
+        i_prev = i
+    return array
 
 def generate_W(trial, num_synergies, n_samples):
     selected_segments = []
@@ -119,10 +129,11 @@ class ISNMF:
         return self.W, self.H
 
 
+#testing with 2 synergies
 #here I'll test the algorithm using synthetic data
 m = 12   #number of channels/muscles
 n = 1000 #number of samples
-r = 4    #number of synergies
+r = 2    #number of synergies
 
 M = np.array((m,n)) #matrix of the synthetic data
 S = np.array((m,r)) #matrix of the synthetic synergies
@@ -135,66 +146,98 @@ S = np.random.rand(m,r)
 trials = load_ninapro_data('synthetic/S1_A1_E1.mat') 
 W = generate_W(trials, r, n)
 
-#graphical representation of the synergies extracted from the Ninapro dataset
-x = np.linspace(0, 1000, 1000)
-for i in range(4):
-    plt.plot(x, W[i], linestyle='-', color='blue')
-    plt.xlabel("x")
-    plt.ylabel("f(x)")
-    plt.show()
+#create the matrix of the synthetic data
+M = S @ W + generate_noise(0.01, m, n)
 
+model = ISNMF(M, r, beta=5, gamma=5, mu=0.4, epsilon=1e-5, t_max=200)
+x = np.linspace(0, 1000, 1000)
+
+W_found, H_found = model.update(M)
+#graphical representation of all the founded synergies and original once overlapped
+for j in range(W.shape[0]):
+    plt.plot(x, avaraging(W[j], 5), linestyle='-', color='blue')
+    plt.plot(x, avaraging(H_found[j], 5), linestyle='-', color='red')
+plt.xlabel("samples")
+plt.ylabel("synergies activations")
+plt.show()
+#graphical represenatation of the components of W matrix separated
+for j in range(W.shape[0]):
+    plt.subplot(W.shape[0],1,j+1)
+    x = np.linspace(0, W.shape[1] , W.shape[1])
+    plt.plot(x, W[j], '-', color='blue')
+    plt.plot(x, H_found[j], '-', color='red')
+    plt.xlabel("samples")
+    plt.ylabel("synergies activations")
+plt.tight_layout()
+plt.show()
+
+#testing with 3 synergies
+r = 3
+M = np.array((m,n)) #matrix of the synthetic data
+S = np.array((m,r)) #matrix of the synthetic synergies
+W = np.array((r,n)) #weighting function matrix
+
+#generate the S matrix of synthetic data
+S = np.random.rand(m,r)
+
+#exctract existing synergies from the Ninapro dataset
+trials = load_ninapro_data('synthetic/S1_A1_E1.mat') 
+W = generate_W(trials, r, n)
 
 #create the matrix of the synthetic data
 M = S @ W + generate_noise(0.01, m, n)
 
-#using the ISNMF algorithm to extract the synergies
-model = ISNMF(M, r, beta=5, gamma=5, mu=0.4, epsilon=1e-5, t_max=200)
-x = np.linspace(0, 1000, 1000)
+W_found, H_found = model.update(M, "add")
+#graphical representation of all the founded synergies and original once overlapped
+for j in range(W.shape[0]):
+    plt.plot(x, avaraging(W[j], 5), linestyle='-', color='blue')
+    plt.plot(x, avaraging(H_found[j], 5), linestyle='-', color='red')
+plt.xlabel("samples")
+plt.ylabel("synergies activations")
+plt.show()
+#graphical represenatation of the components of W matrix separated
+for j in range(W.shape[0]):
+    plt.subplot(W.shape[0],1,j+1)
+    x = np.linspace(0, W.shape[1] , W.shape[1])
+    plt.plot(x, W[j], '-', color='blue')
+    plt.plot(x, H_found[j], '-', color='red')
+    plt.xlabel("samples")
+    plt.ylabel("synergies activations")
+plt.tight_layout()
+plt.show()
 
 
-for i in range(4):
-    W_found, H_found = model.update(model.V)
-    #graphical representation of all the founded synergies and original once overlapped
-    plt.plot(x, W[0], linestyle='-', color='blue')
-    plt.plot(x, H_found[0], linestyle='-', color='red')
-    plt.plot(x, W[1], linestyle='-', color='blue')
-    plt.plot(x, H_found[1], linestyle='-', color='red')
-    plt.plot(x, W[2], linestyle='-', color='blue')
-    plt.plot(x, H_found[2], linestyle='-', color='red')
-    plt.plot(x, W[3], linestyle='-', color='blue')
-    plt.plot(x, H_found[3], linestyle='-', color='red')
-    plt.xlabel("x")
-    plt.ylabel("f(x)")
-    print("the starting S is =")
-    print(S)
-    print("the found S is =")
-    print(W_found)
-    plt.show()
+#testing with 4 synergies
+r = 4
+M = np.array((m,n)) #matrix of the synthetic data
+S = np.array((m,r)) #matrix of the synthetic synergies
+W = np.array((r,n)) #weighting function matrix
 
-    #graphical representation of the 1st synergy at the 1st update
-    plt.plot(x, W[0], linestyle='-', color='blue')
-    plt.plot(x, H_found[0], linestyle='-', color='red')
-    plt.xlabel("x")
-    plt.ylabel("f(x)")
-    plt.show()
+#generate the S matrix of synthetic data
+S = np.random.rand(m,r)
 
-    #graphical representation of the 2nd synergy at the 1st update
-    plt.plot(x, W[1], linestyle='-', color='blue')
-    plt.plot(x, H_found[1], linestyle='-', color='red')
-    plt.xlabel("x")
-    plt.ylabel("f(x)")
-    plt.show()
+#exctract existing synergies from the Ninapro dataset
+trials = load_ninapro_data('synthetic/S1_A1_E1.mat') 
+W = generate_W(trials, r, n)
 
-    #graphical representation of the 3rd synergy at the 1st update
-    plt.plot(x, W[2], linestyle='-', color='blue')
-    plt.plot(x, H_found[2], linestyle='-', color='red')
-    plt.xlabel("x")
-    plt.ylabel("f(x)")
-    plt.show()
+#create the matrix of the synthetic data
+M = S @ W + generate_noise(0.01, m, n)
 
-    #graphical representation of the 4th synergy at the 1st update
-    plt.plot(x, W[3], linestyle='-', color='blue')
-    plt.plot(x, H_found[3], linestyle='-', color='red')
-    plt.xlabel("x")
-    plt.ylabel("f(x)")
-    plt.show()
+W_found, H_found = model.update(M, "add")
+#graphical representation of all the founded synergies and original once overlapped
+for j in range(W.shape[0]):
+    plt.plot(x, avaraging(W[j], 5), linestyle='-', color='blue')
+    plt.plot(x, avaraging(H_found[j], 5), linestyle='-', color='red')
+plt.xlabel("samples")
+plt.ylabel("synergies activations")
+plt.show()
+#graphical represenatation of the components of W matrix separated
+for j in range(W.shape[0]):
+    plt.subplot(W.shape[0],1,j+1)
+    x = np.linspace(0, W.shape[1] , W.shape[1])
+    plt.plot(x, W[j], '-', color='blue')
+    plt.plot(x, H_found[j], '-', color='red')
+    plt.xlabel("samples")
+    plt.ylabel("synergies activations")
+plt.tight_layout()
+plt.show()

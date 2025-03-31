@@ -44,6 +44,12 @@ class ISNMF:
     def update(self, V, string=""):
         self.V = V
         self.m += 1
+
+        #change dimension of the V matrix in case it is different from the first one
+        if self.V.shape[1] != self.k:
+            self.k = self.V.shape[1]
+            self.H = np.maximum(0, np.random.normal(loc=self.V_mean, scale=1, size=(self.r,self.k)))
+
         
         #update of the historical avarage value
         if self.m > 1:
@@ -75,7 +81,7 @@ class ISNMF:
             
             # Update H
             numerator_H = self.W.T @ self.V
-            denominator_H = self.W.T @ self.W @ self.H #+ self.gamma*(self.H) * 1e-1
+            denominator_H = self.W.T @ self.W @ self.H + self.gamma*(self.H) * 1e-1
             self.H *= numerator_H / (denominator_H + 1e-10)
             self.H = np.maximum(self.H, self.epsilon)
             
@@ -121,9 +127,11 @@ def avaraging(array, point_to_avarage):
 
 #model training using the rep0_power.bag
 M = extract_M_matrix_from_dataset('dataset/rep0_power.bag')
-r = 2
-model = ISNMF(M, r, beta=32, gamma=32, mu=0.4, epsilon=1e-5, t_max=200)
-for i in range(5):
+r = 3
+model = ISNMF(M, r, beta=32, gamma=32, mu=0.95, epsilon=1e-5, t_max=200)
+
+#training the model on rep0_power.bag
+for i in range(2):
     W_found, H_found = model.update(model.V)
     #graphical representation of the M input matrix
     plt.figure(figsize=(8, 9)) 
@@ -135,22 +143,20 @@ for i in range(5):
     plt.xlabel("samples")
     plt.ylabel("muscles activations")
     plt.legend(loc='best', fontsize='small', markerscale=1)
-
     #graphical representation of the W_found matrix
     plt.subplot(3,1,2)
     for j in range(W_found.shape[0]):
         x = np.linspace(0, W_found.shape[1] , W_found.shape[1])
-        plt.plot(x, W_found[j], 'o')
+        plt.plot(x, W_found[j], 'o-')
     plt.title("components of the W matrix(activation matrix)")
     plt.xlabel("sinergy")
     plt.ylabel("muscles activation")
-    plt.ylim(-0.1, 2)
-
+    plt.ylim(-0.1, 7)
     #graphical representation of the H_found matrix
     plt.subplot(3,1,3)
     for j in range(H_found.shape[0]):
         x = np.linspace(0, M.shape[1] , M.shape[1])
-        H_found[j] = avaraging(H_found[j], 20)
+        H_found[j] = avaraging(H_found[j], 30)
         plt.plot(x, H_found[j], linestyle='-')
     plt.title("components of the H matrix(activation matrix)")
     plt.xlabel("samples")
@@ -159,13 +165,81 @@ for i in range(5):
     plt.show()
 
 
+for i in range(2):
+    #training the model on rep1_power.bag
+    M = extract_M_matrix_from_dataset('dataset/rep1_power.bag')
+    W_found, H_found = model.update(M)
+    #graphical representation of the M input matrix
+    plt.figure(figsize=(8, 9)) 
+    plt.subplot(3,1,1)
+    for j in range(model.V.shape[0]):
+        x = np.linspace(0, M.shape[1] , M.shape[1])
+        plt.plot(x, model.V[j], linestyle='-', label='muscle {}'.format(j))
+    plt.title("components of the M input matrix")
+    plt.xlabel("samples")
+    plt.ylabel("muscles activations")
+    plt.legend(loc='best', fontsize='small', markerscale=1)
+    #graphical representation of the W_found matrix
+    plt.subplot(3,1,2)
+    for j in range(W_found.shape[0]):
+        x = np.linspace(0, W_found.shape[1] , W_found.shape[1])
+        plt.plot(x, W_found[j], 'o-')
+    plt.title("components of the W matrix(activation matrix)")
+    plt.xlabel("sinergy")
+    plt.ylabel("muscles activation")
+    plt.ylim(-0.1, 7)
+    #graphical representation of the H_found matrix
+    plt.subplot(3,1,3)
+    for j in range(H_found.shape[0]):
+        x = np.linspace(0, M.shape[1] , M.shape[1])
+        H_found[j] = avaraging(H_found[j], 50)
+        plt.plot(x, H_found[j], linestyle='-')
+    plt.title("components of the H matrix(activation matrix)")
+    plt.xlabel("samples")
+    plt.ylabel("sinergy activations")
+    plt.tight_layout()
+    plt.show()
+
+
+#test on rep2_power.bag without shift of the brecelet
+M = extract_M_matrix_from_dataset('dataset/rep2_power.bag')
+W_found, H_found = model.update(M)
+#graphical representation of the M input matrix
+plt.figure(figsize=(11, 9)) 
+plt.subplot(3,3,1)
+for j in range(M.shape[0]):
+    x = np.linspace(0, M.shape[1] , M.shape[1])
+    plt.plot(x, M[j], linestyle='-', label='muscle {}'.format(j))
+plt.title("components of the shifted M input matrix")
+plt.xlabel("samples")
+plt.ylabel("muscles activations")
+plt.legend(loc='best', fontsize='small', markerscale=1)
+#graphical representation of the W_found matrix
+plt.subplot(3,3,2)
+for j in range(W_found.shape[0]):
+    x = np.linspace(0, W_found.shape[1] , W_found.shape[1])
+    plt.plot(x, W_found[j], 'o-')
+plt.title("components of the W matrix(activation matrix)")
+plt.xlabel("sinergy")
+plt.ylabel("muscles activation")
+plt.ylim(-0.1, 7)
+#graphical representation of the H_found matrix
+plt.subplot(3,3,3)
+for j in range(H_found.shape[0]):
+    x = np.linspace(0, M.shape[1] , M.shape[1])
+    H_found[j] = avaraging(H_found[j], 50)
+    plt.plot(x, H_found[j], linestyle='-')
+plt.title("components of the H matrix(activation matrix)")
+plt.xlabel("samples")
+plt.ylabel("sinergy activations")
+
+
 
 #simulation of the shift of the bracelet position
 shifted_M = np.roll(M, shift=1, axis=0)
 W_found, H_found = model.update(shifted_M)
 #graphical representation of the M input matrix
-plt.figure(figsize=(8, 9)) 
-plt.subplot(3,1,1)
+plt.subplot(3,3,4)
 for j in range(shifted_M.shape[0]):
     x = np.linspace(0, shifted_M.shape[1] , shifted_M.shape[1])
     plt.plot(x, shifted_M[j], linestyle='-', label='muscle {}'.format(j))
@@ -173,22 +247,20 @@ plt.title("components of the shifted M input matrix")
 plt.xlabel("samples")
 plt.ylabel("muscles activations")
 plt.legend(loc='best', fontsize='small', markerscale=1)
-
 #graphical representation of the W_found matrix
-plt.subplot(3,1,2)
+plt.subplot(3,3,5)
 for j in range(W_found.shape[0]):
     x = np.linspace(0, W_found.shape[1] , W_found.shape[1])
-    plt.plot(x, W_found[j], 'o')
+    plt.plot(x, W_found[j], 'o-')
 plt.title("components of the W matrix(activation matrix)")
 plt.xlabel("sinergy")
 plt.ylabel("muscles activation")
-plt.ylim(-0.1, 2)
-
+plt.ylim(-0.1, 7)
 #graphical representation of the H_found matrix
-plt.subplot(3,1,3)
+plt.subplot(3,3,6)
 for j in range(H_found.shape[0]):
     x = np.linspace(0, shifted_M.shape[1] , shifted_M.shape[1])
-    H_found[j] = avaraging(H_found[j], 20)
+    H_found[j] = avaraging(H_found[j], 50)
     plt.plot(x, H_found[j], linestyle='-')
 plt.title("components of the H matrix(activation matrix)")
 plt.xlabel("samples")

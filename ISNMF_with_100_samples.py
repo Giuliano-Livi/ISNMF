@@ -1,4 +1,3 @@
-import rosbag
 import numpy as np
 import matplotlib.pyplot as plt
 
@@ -27,12 +26,12 @@ class ISNMF:
 
         #initialize the basis matrix ufg values from max(0,N(V,1))
         self.V_mean = np.mean(self.V)
-        self.W = np.array((self.n,r))
-        self.H = np.array((r,self.k))
-        self.W = np.maximum(0, np.random.normal(loc=self.V_mean, scale=1, size=(self.n,r)))
-        self.H = np.maximum(0, np.random.normal(loc=self.V_mean, scale=1, size=(r,self.k)))
-        self.A = np.zeros((self.n, r))  #Accumulator for forgetting mechanism
-        self.B = np.zeros((r, r))  #Accumulator for forgetting mechanism
+        self.W = np.array((self.n,self.r))
+        self.H = np.array((self.r,self.k))
+        self.W = np.maximum(0, np.random.normal(loc=self.V_mean, scale=1, size=(self.n,self.r)))
+        self.H = np.maximum(0, np.random.normal(loc=self.V_mean, scale=1, size=(self.r,self.k)))
+        self.A = np.zeros((self.n, self.r))  #Accumulator for forgetting mechanism
+        self.B = np.zeros((self.r, self.r))  #Accumulator for forgetting mechanism
 
 
         #initial reconstuction error
@@ -75,7 +74,7 @@ class ISNMF:
             
             # Update H
             numerator_H = self.W.T @ self.V
-            denominator_H = self.W.T @ self.W @ self.H #+ self.gamma*(self.H) * 1e-1
+            denominator_H = self.W.T @ self.W @ self.H + self.gamma*(self.H) * 1e-1 #+ self.gamma*(self.H) ** -0.5
             self.H *= numerator_H / (denominator_H + 1e-10)
             self.H = np.maximum(self.H, self.epsilon)
             
@@ -92,71 +91,48 @@ class ISNMF:
         self.B = self.mu * self.B + self.H @ self.H.T
         return self.W, self.H
 
-#function to extract the matrix M from the dataset
-def extract_M_matrix_from_dataset(bag_path):
-    # Initialize lists to store timestamps and EMG data
-    timestamps = []
-    emg_data = []
-
-    # Open the ROS bag file and read messages from the 'emg_rms' topic
-    with rosbag.Bag(bag_path, 'r') as bag:
-        for topic, rawdata, timestamp in bag.read_messages(topics=['emg_rms']):
-            emg_data.append(rawdata.data)  # Extract EMG RMS values from the message
-    # Convert lists to NumPy arrays for easier processing
-    emg_data = np.array(emg_data)
-    return emg_data.T
-
-#function to filter the data
-def avaraging(array, point_to_avarage):
-    i_prev = 0
-    i = 0
-    while i < array.shape[0]:
-        i = i + point_to_avarage
-        mean = np.mean(array[i_prev : i])
-        array[i_prev : i] = mean
-        i_prev = i
-    return array
 
 
-#test section
-M = extract_M_matrix_from_dataset('dataset/rep0_power.bag')
-r = 2 #number of synergies
 
-#using the ISNMF algorithm to extract the synergies
-model = ISNMF(M, r, beta=32, gamma=32, mu=0.95, epsilon=1e-5, t_max=200)
+#definition of the number of synergies
+r = 2
+
+#initialization of the model
+W_test = np.array([[1,   0],
+                   [0,   1],
+                   [0.5, 0],
+                   [0, 0.5]])
+
+x = np.linspace(0, 2 * np.pi, 100)
+wave1 = np.maximum(np.sin(x), 0)
+wave2 = np.maximum(np.sin(x + np.pi), 0)
+H_test = np.array([wave1, wave2])
+V_test = W_test @ H_test
+model = ISNMF(V_test, r, beta=5, gamma=5, mu=0.95, epsilon=1e-5, t_max=200)
 
 #graphical representation section
-#test using only 2 synergies
 for i in range(2):
-    W_found, H_found = model.update(M)
-
-    #graphical representation of the M input matrix
+    W_found, H_found = model.update(model.V)
     plt.figure(figsize=(8, 9)) 
-    plt.subplot(3,1,1)
-    for j in range(model.V.shape[0]):
-        x = np.linspace(0, M.shape[1] , M.shape[1])
-        plt.plot(x, model.V[j], linestyle='-', label='muscle {}'.format(j))
-    plt.title("components of the M input matrix")
-    plt.xlabel("samples")
-    plt.ylabel("muscles activations")
-    plt.legend(loc='best', fontsize='small', markerscale=1)
+    plt.subplot(2,1,1)
 
-    #graphical representation of the W_found matrix
-    plt.subplot(3,1,2)
+    #graphical representation of the W_found compared with the original W matrix
+    plt.subplot(2,1,1)
     for j in range(W_found.shape[0]):
         x = np.linspace(0, W_found.shape[1] , W_found.shape[1])
-        plt.plot(x, W_found[j], 'o')
+        plt.plot(x, W_test[j], 'o-', color='blue')
+        plt.plot(x, W_found[j], 'o-', color='red')
     plt.title("components of the W matrix(activation matrix)")
     plt.xlabel("sinergy")
     plt.ylabel("muscles activation")
     plt.ylim(-0.1, 2)
 
-    #graphical representation of the H_found matrix
-    plt.subplot(3,1,3)
+    #graphical representation of the H_found compared with the original H matrix
+    plt.subplot(2,1,2)
     for j in range(H_found.shape[0]):
-        x = np.linspace(0, M.shape[1] , M.shape[1])
-        H_found[j] = avaraging(H_found[j], 20)
-        plt.plot(x, H_found[j], linestyle='-')
+        x = np.linspace(0, model.V.shape[1] , model.V.shape[1])
+        plt.plot(x, H_test[j], 'o-', color='blue')
+        plt.plot(x, H_found[j], 'o-', color='red')
     plt.title("components of the H matrix(activation matrix)")
     plt.xlabel("samples")
     plt.ylabel("sinergy activations")
@@ -164,40 +140,45 @@ for i in range(2):
     plt.show()
 
 
-#test using 3 synergies
+
+#section in which I add the 3rd synergy to the model
+W_test = np.array([[1, 0, 0],
+                    [0, 1, 0],
+                    [0, 0, 1],
+                    [0, 0, 0]])
+x = np.linspace(0, 2 * np.pi, 100)
+wave1 = np.maximum(np.sin(x), 0)
+wave2 = np.maximum(np.sin(x + np.pi/2), 0)
+wave3 = np.maximum(np.sin(x + np.pi), 0)
+H_test = np.array([wave1, wave2, wave3])
+V_test = W_test @ H_test
+
+#graphical representation section
 for i in range(2):
     if i == 0:
-        W_found, H_found = model.update(M, "add")
+        W_found, H_found = model.update(V_test, string="add")
     else:
-        W_found, H_found = model.update(M)
-
-    #graphical representation of the M input matrix
+        W_found, H_found = model.update(V_test)
     plt.figure(figsize=(8, 9)) 
-    plt.subplot(3,1,1)
-    for j in range(model.V.shape[0]):
-        x = np.linspace(0, M.shape[1] , M.shape[1])
-        plt.plot(x, model.V[j], linestyle='-', label='muscle {}'.format(j))
-    plt.title("components of the M input matrix")
-    plt.xlabel("samples")
-    plt.ylabel("muscles activations")
-    plt.legend(loc='best', fontsize='small', markerscale=1)
+    plt.subplot(2,1,1)
 
-    #graphical representation of the W_found matrix
-    plt.subplot(3,1,2)
+    #graphical representation of the W_found compared with the original W matrix
+    plt.subplot(2,1,1)
     for j in range(W_found.shape[0]):
         x = np.linspace(0, W_found.shape[1] , W_found.shape[1])
-        plt.plot(x, W_found[j], 'o')
+        plt.plot(x, W_test[j], 'o-', color='blue')
+        plt.plot(x, W_found[j], 'o-', color='red')
     plt.title("components of the W matrix(activation matrix)")
     plt.xlabel("sinergy")
     plt.ylabel("muscles activation")
     plt.ylim(-0.1, 2)
 
-    #graphical representation of the H_found matrix
-    plt.subplot(3,1,3)
+    #graphical representation of the H_found compared with the original H matrix
+    plt.subplot(2,1,2)
     for j in range(H_found.shape[0]):
-        x = np.linspace(0, M.shape[1] , M.shape[1])
-        H_found[j] = avaraging(H_found[j], 50)
-        plt.plot(x, H_found[j], linestyle='-')
+        x = np.linspace(0, model.V.shape[1] , model.V.shape[1])
+        plt.plot(x, H_test[j], 'o-', color='blue')
+        plt.plot(x, H_found[j], 'o-', color='red')
     plt.title("components of the H matrix(activation matrix)")
     plt.xlabel("samples")
     plt.ylabel("sinergy activations")
@@ -205,40 +186,45 @@ for i in range(2):
     plt.show()
 
 
-#test using 4 synergies
+
+#section in which I add the 4th synergy to the model
+W_test = np.array([[1, 0, 0, 0],
+                   [0, 1, 0, 0],
+                   [0, 0, 1, 0],
+                   [0, 0, 0, 1]])
+x = np.linspace(0, 2 * np.pi, 100)
+wave1 = np.maximum(np.sin(x), 0)
+wave2 = np.maximum(np.sin(x + np.pi/2), 0)
+wave3 = np.maximum(np.sin(x + np.pi), 0)
+wave4 = np.maximum(np.sin(x + 3*np.pi/2), 0)
+H_test = np.array([wave1, wave2, wave3])
+V_test = W_test @ H_test
+
+#graphical representation section
 for i in range(2):
     if i == 0:
-        W_found, H_found = model.update(M, "add")
+        W_found, H_found = model.update(V_test, string="add")
     else:
-        W_found, H_found = model.update(M)
-
-    #graphical representation of the M input matrix
+        W_found, H_found = model.update(V_test)
     plt.figure(figsize=(8, 9)) 
-    plt.subplot(3,1,1)
-    for j in range(model.V.shape[0]):
-        x = np.linspace(0, M.shape[1] , M.shape[1])
-        plt.plot(x, model.V[j], linestyle='-', label='muscle {}'.format(j))
-    plt.title("components of the M input matrix")
-    plt.xlabel("samples")
-    plt.ylabel("muscles activations")
-    plt.legend(loc='best', fontsize='small', markerscale=1)
 
-    #graphical representation of the W_found matrix
-    plt.subplot(3,1,2)
+    #graphical representation of the W_found compared with the original W matrix
+    plt.subplot(2,1,1)
     for j in range(W_found.shape[0]):
         x = np.linspace(0, W_found.shape[1] , W_found.shape[1])
-        plt.plot(x, W_found[j], 'o')
+        plt.plot(x, W_test[j], 'o-', color='blue')
+        plt.plot(x, W_found[j], 'o-', color='red')
     plt.title("components of the W matrix(activation matrix)")
     plt.xlabel("sinergy")
     plt.ylabel("muscles activation")
     plt.ylim(-0.1, 2)
 
-    #graphical representation of the H_found matrix
-    plt.subplot(3,1,3)
+    #graphical representation of the H_found compared with the original H matrix
+    plt.subplot(2,1,2)
     for j in range(H_found.shape[0]):
-        x = np.linspace(0, M.shape[1] , M.shape[1])
-        H_found[j] = avaraging(H_found[j], 50)
-        plt.plot(x, H_found[j], linestyle='-')
+        x = np.linspace(0, model.V.shape[1] , model.V.shape[1])
+        plt.plot(x, H_test[j], 'o-', color='blue')
+        plt.plot(x, H_found[j], 'o-', color='red')
     plt.title("components of the H matrix(activation matrix)")
     plt.xlabel("samples")
     plt.ylabel("sinergy activations")
