@@ -26,12 +26,12 @@ class ISNMF:
 
         #initialize the basis matrix ufg values from max(0,N(V,1))
         self.V_mean = np.mean(self.V)
-        self.W = np.array((n,r))
-        self.H = np.array((r,k))
-        self.W = np.maximum(0, np.random.normal(loc=self.V_mean, scale=1, size=(n,r)))
-        self.H = np.maximum(0, np.random.normal(loc=self.V_mean, scale=1, size=(r,k)))
-        self.A = np.zeros((n, r))  #Accumulator for forgetting mechanism
-        self.B = np.zeros((r, r))  #Accumulator for forgetting mechanism
+        self.W = np.array((self.n,self.r))
+        self.H = np.array((self.r,self.k))
+        self.W = np.maximum(0, np.random.normal(loc=self.V_mean, scale=1, size=(self.n,self.r)))
+        self.H = np.maximum(0, np.random.normal(loc=self.V_mean, scale=1, size=(self.r,self.k)))
+        self.A = np.zeros((self.n, self.r))  #Accumulator for forgetting mechanism
+        self.B = np.zeros((self.r, self.r))  #Accumulator for forgetting mechanism
 
 
         #initial reconstuction error
@@ -94,418 +94,139 @@ class ISNMF:
 
 
 
-#definition of the dimensions of the matrices
-r = 2; n = 4; k = 10
+#definition of the number of synergies
+r = 2
 
 #initialization of the model
-W_test = np.array([[1, 0],
-                   [1, 0],
-                   [0, 1],
-                   [0, 1]])
-H_test = np.array([[0.00000000e+00, 6.42787610e-01, 9.84807753e-01, 8.66025404e-01, 3.42020143e-01, 0, 0, 0, 0, 0],
-                   [0, 0, 0, 0, 0, 3.42020143e-01, 8.66025404e-01, 9.84807753e-01, 6.42787610e-01, 0.00000000e+00]])
+W_test = np.array([[1,   0],
+                   [0,   1],
+                   [0.5, 0],
+                   [0, 0.5]])
 
-
+x = np.linspace(0, 2 * np.pi, 100)
+wave1 = np.maximum(np.sin(x), 0)
+wave2 = np.maximum(np.sin(x + np.pi), 0)
+H_test = np.array([wave1, wave2])
 V_test = W_test @ H_test
-model = ISNMF(V_test, r, beta=5, gamma=5, mu=0.4, epsilon=1e-5, t_max=200)
-x = np.linspace(0, 2 * np.pi, 10)
+model = ISNMF(V_test, r, beta=5, gamma=5, mu=0.95, epsilon=1e-5, t_max=200)
 
-#first update verification
-W_found, H_found = model.update(model.V)
-#graphical representation
-x = np.linspace(0, 2 * np.pi, 10)
-plt.plot(x, H_test[0], marker='o', linestyle='-', color='blue')
-plt.plot(x, H_test[1], marker='o', linestyle='-', color='blue')
-plt.plot(x, H_found[0], marker='o', linestyle='-', color='red')
-plt.plot(x, H_found[1], marker='o', linestyle='-', color='red')
-plt.xlabel("x")
-plt.ylabel("f(x)")
-plt.title("1st update")
-print("W of the 1st update is = ")
-print(W_found)
-print("H of the 1st update is = ")
-print(H_found)
-plt.show()
+#graphical representation section
+for i in range(2):
+    W_found, H_found = model.update(model.V)
+    plt.figure(figsize=(8, 9)) 
+    plt.subplot(2,1,1)
 
+    #graphical representation of the W_found compared with the original W matrix
+    plt.subplot(2,1,1)
+    for j in range(W_found.shape[0]):
+        x = np.linspace(0, W_found.shape[1] , W_found.shape[1])
+        plt.plot(x, W_test[j], 'o-', color='blue')
+        plt.plot(x, W_found[j], 'o-', color='red')
+    plt.title("components of the W matrix(activation matrix)")
+    plt.xlabel("sinergy")
+    plt.ylabel("muscles activation")
+    plt.ylim(-0.1, 2)
 
-
-
-#second update verification
-W_test_2 = np.array([[1, 0],
-                     [1, 0],
-                     [0, 1],
-                     [0, 1]])
-H_test_2 = np.array([[0.00000000e+00, 6.42787610, 9.84807753, 8.66025404, 3.42020143, 0, 0, 0, 0, 0],
-                     [0, 0, 0, 0, 0, 3.42020143, 8.66025404, 9.84807753, 6.42787610, 0.00000000e+00]])
-V_test_2 = W_test_2 @ H_test_2
-W_found_2, H_found_2 = model.update(V_test_2)
-#graphical representation
-plt.plot(x, H_test_2[0], marker='o', linestyle='-', color='blue')
-plt.plot(x, H_test_2[1], marker='o', linestyle='-', color='blue')
-plt.plot(x, H_found_2[0], marker='o', linestyle='-', color='red')
-plt.plot(x, H_found_2[1], marker='o', linestyle='-', color='red')
-plt.xlabel("x")
-plt.ylabel("f(x)")
-plt.title("2nd update")
-print("W of the 2nd update is = ")
-print(W_found_2)
-print("H of the 2nd update is = ")
-print(H_found_2)
-plt.show()
+    #graphical representation of the H_found compared with the original H matrix
+    plt.subplot(2,1,2)
+    for j in range(H_found.shape[0]):
+        x = np.linspace(0, model.V.shape[1] , model.V.shape[1])
+        plt.plot(x, H_test[j], 'o-', color='blue')
+        plt.plot(x, H_found[j], 'o-', color='red')
+    plt.title("components of the H matrix(activation matrix)")
+    plt.xlabel("samples")
+    plt.ylabel("sinergy activations")
+    plt.tight_layout()
+    plt.show()
 
 
 
+#section in which I add the 3rd synergy to the model
+W_test = np.array([[1, 0, 0],
+                    [0, 1, 0],
+                    [0, 0, 1],
+                    [0, 0, 0]])
+x = np.linspace(0, 2 * np.pi, 100)
+wave1 = np.maximum(np.sin(x), 0)
+wave2 = np.maximum(np.sin(x + np.pi/2), 0)
+wave3 = np.maximum(np.sin(x + np.pi), 0)
+H_test = np.array([wave1, wave2, wave3])
+V_test = W_test @ H_test
 
+#graphical representation section
+for i in range(2):
+    if i == 0:
+        W_found, H_found = model.update(V_test, string="add")
+    else:
+        W_found, H_found = model.update(V_test)
+    plt.figure(figsize=(8, 9)) 
+    plt.subplot(2,1,1)
 
-#third update verification
-W_test_3 = np.array([[1, 0],
-                     [1, 0],
-                     [0, 1],
-                     [0, 1]])
-H_test_3 = np.array([[0.00000000e+00, 6.427876103e+01, 9.84807753e+01, 8.66025404e+01, 3.42020143e+01, 0, 0, 0, 0, 0],
-                     [0, 0, 0, 0, 0, 3.42020143e+01, 8.66025404e+01, 9.84807753e+01, 6.42787610e+01, 0.00000000e+00]])
-V_test_3 = W_test_3 @ H_test_3
-W_found_3, H_found_3 = model.update(V_test_3)
-#graphical representation
-plt.plot(x, H_test_3[0], marker='o', linestyle='-', color='blue')
-plt.plot(x, H_test_3[1], marker='o', linestyle='-', color='blue')
-plt.plot(x, H_found_3[0], marker='o', linestyle='-', color='red')
-plt.plot(x, H_found_3[1], marker='o', linestyle='-', color='red')
-plt.xlabel("x")
-plt.ylabel("f(x)")
-plt.title("3rd update")
-print("W of the 3rd update is = ")
-print(W_found_3)
-print("H of the 3rd update is = ")
-print(H_found_3)
-plt.show()
+    #graphical representation of the W_found compared with the original W matrix
+    plt.subplot(2,1,1)
+    for j in range(W_found.shape[0]):
+        x = np.linspace(0, W_found.shape[1] , W_found.shape[1])
+        plt.plot(x, W_test[j], 'o-', color='blue')
+        plt.plot(x, W_found[j], 'o-', color='red')
+    plt.title("components of the W matrix(activation matrix)")
+    plt.xlabel("sinergy")
+    plt.ylabel("muscles activation")
+    plt.ylim(-0.1, 2)
 
-
-
-
-#fourth update verification
-W_test_4 = np.array([[1, 0],
-                     [1, 0],
-                     [0, 1],
-                     [0, 1]])
-H_test_4 = np.array([[0.00000000e+00, 6.427876103e-01, 9.84807753e-01, 8.66025404e-01, 3.42020143e-01, 0, 0, 0, 0, 0],
-                     [0, 0, 0, 0, 0, 3.42020143e-01, 8.66025404e-01, 9.84807753e-01, 6.42787610e-01, 0.00000000e+00]])
-V_test_4 = W_test_4 @ H_test_4
-W_found_4, H_found_4 = model.update(V_test_4)
-#graphical representation
-plt.plot(x, H_test_4[0], marker='o', linestyle='-', color='blue')
-plt.plot(x, H_test_4[1], marker='o', linestyle='-', color='blue')
-plt.plot(x, H_found_4[0], marker='o', linestyle='-', color='red')
-plt.plot(x, H_found_4[1], marker='o', linestyle='-', color='red')
-plt.xlabel("x")
-plt.ylabel("f(x)")
-plt.title("4th update")
-print("W of the 4th update is = ")
-print(W_found_4)
-print("H of the 4th update is = ")
-print(H_found_4)
-plt.show()
+    #graphical representation of the H_found compared with the original H matrix
+    plt.subplot(2,1,2)
+    for j in range(H_found.shape[0]):
+        x = np.linspace(0, model.V.shape[1] , model.V.shape[1])
+        plt.plot(x, H_test[j], 'o-', color='blue')
+        plt.plot(x, H_found[j], 'o-', color='red')
+    plt.title("components of the H matrix(activation matrix)")
+    plt.xlabel("samples")
+    plt.ylabel("sinergy activations")
+    plt.tight_layout()
+    plt.show()
 
 
 
+#section in which I add the 4th synergy to the model
+W_test = np.array([[1, 0, 0, 0],
+                   [0, 1, 0, 0],
+                   [0, 0, 1, 0],
+                   [0, 0, 0, 1]])
+x = np.linspace(0, 2 * np.pi, 100)
+wave1 = np.maximum(np.sin(x), 0)
+wave2 = np.maximum(np.sin(x + np.pi/2), 0)
+wave3 = np.maximum(np.sin(x + np.pi), 0)
+wave4 = np.maximum(np.sin(x + 3*np.pi/2), 0)
+H_test = np.array([wave1, wave2, wave3, wave4])
+V_test = W_test @ H_test
 
-#fifth update verification
-W_test_5 = np.array([[1, 0],
-                     [1, 0],
-                     [0, 1],
-                     [0, 1]])
-H_test_5 = np.array([[0, 0, 0, 0, 0, 1, 1, 1, 1, 0],
-                     [0, 1, 1, 1, 1, 0, 0, 0, 0, 0]])
-V_test_5 = W_test_5 @ H_test_5
-W_found_5, H_found_5 = model.update(V_test_5)
-#graphical representation
-plt.plot(x, H_test_5[0], marker='o', linestyle='-', color='blue')
-plt.plot(x, H_test_5[1], marker='o', linestyle='-', color='blue')
-plt.plot(x, H_found_5[0], marker='o', linestyle='-', color='red')
-plt.plot(x, H_found_5[1], marker='o', linestyle='-', color='red')
-plt.xlabel("x")
-plt.ylabel("f(x)")
-plt.title("5th update")
-print("W of the 5th update is = ")
-print(W_found_5)
-print("H of the 5th update is = ")
-print(H_found_5)
-plt.show()
+#graphical representation section
+for i in range(2):
+    if i == 0:
+        W_found, H_found = model.update(V_test, string="add")
+    else:
+        W_found, H_found = model.update(V_test)
+    plt.figure(figsize=(8, 9)) 
 
+    #graphical representation of the W_found compared with the original W matrix
+    plt.subplot(2,1,1)
+    for j in range(W_found.shape[0]):
+        x = np.linspace(0, W_found.shape[1] , W_found.shape[1])
+        plt.plot(x, W_test[j], 'o-', color='blue')
+        plt.plot(x, W_found[j], 'o-', color='red')
+    plt.title("components of the W matrix(activation matrix)")
+    plt.xlabel("sinergy")
+    plt.ylabel("muscles activation")
+    plt.ylim(-0.1, 2)
 
-
-#sixth update verification
-W_test_6 = np.array([[1, 0, 0],
-                     [1, 0, 0],
-                     [0, 1, 0],
-                     [0, 1, 1]])
-H_test_6 = np.array([[0, 1, 1, 0, 0, 0, 0, 0, 0, 0],
-                     [0, 0, 0, 0, 1.5, 1.5, 0, 0, 0, 0],
-                     [0, 0, 0, 0, 0, 0, 0, 1.7, 1.7, 0]])
-V_test_6 = W_test_6 @ H_test_6
-W_found_6, H_found_6 = model.update(V_test_6, "add")
-#graphical representation
-plt.plot(x, H_test_6[0], marker='o', linestyle='-', color='blue')
-plt.plot(x, H_test_6[1], marker='o', linestyle='-', color='blue')
-plt.plot(x, H_test_6[2], marker='o', linestyle='-', color='blue')
-plt.plot(x, H_found_6[0], marker='o', linestyle='-', color='red')
-plt.plot(x, H_found_6[1], marker='o', linestyle='-', color='red')
-plt.plot(x, H_found_6[2], marker='o', linestyle='-', color='red')
-plt.xlabel("x")
-plt.ylabel("f(x)")
-plt.title("6th update")
-print("W of the 6th update is = ")
-print(W_found_6)
-print("H of the 6th update is = ")
-print(H_found_6)
-# Show the graph
-plt.show()
-
-
-
-#seventh update verification
-W_test_7 = np.array([[1, 0, 0],
-                     [1, 0, 0],
-                     [0, 1, 0],
-                     [0, 1, 1]])
-H_test_7 = np.array([[0, 1e+1, 1e+1, 0, 0, 0, 0, 0, 0, 0],
-                     [0, 0, 0, 0, 1e+1, 1e+1, 0, 0, 0, 0],
-                     [0, 0, 0, 0, 0, 0, 0, 1e+1, 1e+1, 0]])
-V_test_7 = W_test_7 @ H_test_7
-W_found_7, H_found_7 = model.update(V_test_7)
-#graphical representation
-plt.plot(x, H_test_7[0], marker='o', linestyle='-', color='blue')
-plt.plot(x, H_test_7[1], marker='o', linestyle='-', color='blue')
-plt.plot(x, H_test_7[2], marker='o', linestyle='-', color='blue')
-plt.plot(x, H_found_7[0], marker='o', linestyle='-', color='red')
-plt.plot(x, H_found_7[1], marker='o', linestyle='-', color='red')
-plt.plot(x, H_found_7[2], marker='o', linestyle='-', color='red')
-plt.xlabel("x")
-plt.ylabel("f(x)")
-plt.title("7th update")
-print("W of the 7th update is = ")
-print(W_found_7)
-print("H of the 7th update is = ")
-print(H_found_7)
-# Show the graph
-plt.show()
-
-
-
-#eighth update verification
-W_test_8 = np.array([[1, 0, 0],
-                     [1, 0, 0],
-                     [0, 1, 0],
-                     [0, 1, 1]])
-H_test_8 = np.array([[0, 1, 1, 0, 0, 0, 0, 0, 0, 0],
-                     [0, 0, 0, 0, 1, 1, 0, 0, 0, 0],
-                     [0, 0, 0, 0, 0, 0, 0, 1, 1, 0]])
-V_test_8 = W_test_8 @ H_test_8
-W_found_8, H_found_8 = model.update(V_test_8)
-#graphical representation
-plt.plot(x, H_test_8[0], marker='o', linestyle='-', color='blue')
-plt.plot(x, H_test_8[1], marker='o', linestyle='-', color='blue')
-plt.plot(x, H_test_8[2], marker='o', linestyle='-', color='blue')
-plt.plot(x, H_found_8[0], marker='o', linestyle='-', color='red')
-plt.plot(x, H_found_8[1], marker='o', linestyle='-', color='red')
-plt.plot(x, H_found_8[2], marker='o', linestyle='-', color='red')
-plt.xlabel("x")
-plt.ylabel("f(x)")
-plt.title("8th update")
-print("W of the 8th update is = ")
-print(W_found_8)
-print("H of the 8th update is = ")
-print(H_found_8)
-# Show the graph
-plt.show()
-
-
-
-#eighth update verification
-W_test_9 = np.array([[1, 0, 0, 1],
-                     [1, 0, 0, 0],
-                     [0, 1, 0, 0],
-                     [0, 1, 1, 0]])
-H_test_9 = np.array([[0, 1, 0, 0, 0, 0, 0, 0, 0, 0],
-                     [0, 0, 0, 1, 0, 0, 0, 0, 0, 0],
-                     [0, 0, 0, 0, 0, 1, 0, 0, 0, 0],
-                     [0, 0, 0, 0, 0, 0, 0, 1, 0, 0]])
-V_test_9 = W_test_9 @ H_test_9
-W_found_9, H_found_9 = model.update(V_test_9, "add")
-#graphical representation
-plt.plot(x, H_test_9[0], marker='o', linestyle='-', color='blue')
-plt.plot(x, H_test_9[1], marker='o', linestyle='-', color='blue')
-plt.plot(x, H_test_9[2], marker='o', linestyle='-', color='blue')
-plt.plot(x, H_test_9[3], marker='o', linestyle='-', color='blue')
-plt.plot(x, H_found_9[0], marker='o', linestyle='-', color='red')
-plt.plot(x, H_found_9[1], marker='o', linestyle='-', color='red')
-plt.plot(x, H_found_9[2], marker='o', linestyle='-', color='red')
-plt.plot(x, H_found_9[3], marker='o', linestyle='-', color='red')
-plt.xlabel("x")
-plt.ylabel("f(x)")
-plt.title("9th update")
-print("W of the 9th update is = ")
-print(W_found_9)
-print("H of the 9th update is = ")
-print(H_found_9)
-# Show the graph
-plt.show()
-
-
-
-#tenth update verification
-W_test_10 = np.array([[1, 0, 0, 1],
-                     [1, 0, 0, 0],
-                     [0, 1, 0, 0],
-                     [0, 1, 1, 0]])
-H_test_10 = np.array([[0, 1, 0, 0, 0, 0, 0, 0, 0, 0],
-                     [0, 0, 0, 1, 0, 0, 0, 0, 0, 0],
-                     [0, 0, 0, 0, 0, 1, 0, 0, 0, 0],
-                     [0, 0, 0, 0, 0, 0, 0, 1, 0, 0]])
-V_test_10 = W_test_10 @ H_test_10
-W_found_10, H_found_10 = model.update(V_test_10)
-#graphical representation
-plt.plot(x, H_test_10[0], marker='o', linestyle='-', color='blue')
-plt.plot(x, H_test_10[1], marker='o', linestyle='-', color='blue')
-plt.plot(x, H_test_10[2], marker='o', linestyle='-', color='blue')
-plt.plot(x, H_test_10[3], marker='o', linestyle='-', color='blue')
-plt.plot(x, H_found_10[0], marker='o', linestyle='-', color='red')
-plt.plot(x, H_found_10[1], marker='o', linestyle='-', color='red')
-plt.plot(x, H_found_10[2], marker='o', linestyle='-', color='red')
-plt.plot(x, H_found_10[3], marker='o', linestyle='-', color='red')
-plt.xlabel("x")
-plt.ylabel("f(x)")
-plt.title("10th update")
-print("W of the 10th update is = ")
-print(W_found_10)
-print("H of the 10th update is = ")
-print(H_found_10)
-# Show the graph
-plt.show()
-
-
-
-#eleventh update verification
-W_test_11 = np.array([[1, 0, 0, 1],
-                     [1, 0, 0, 0],
-                     [0, 1, 0, 0],
-                     [0, 1, 1, 0]])
-H_test_11 = np.array([[0, 1, 0, 0, 0, 0, 0, 0, 0, 0],
-                     [0, 0, 0, 1, 0, 0, 0, 0, 0, 0],
-                     [0, 0, 0, 0, 0, 1, 0, 0, 0, 0],
-                     [0, 0, 0, 0, 0, 0, 0, 1, 0, 0]])
-V_test_11 = W_test_11 @ H_test_11
-W_found_11, H_found_11 = model.update(V_test_11)
-#graphical representation
-plt.plot(x, H_test_11[0], marker='o', linestyle='-', color='blue')
-plt.plot(x, H_test_11[1], marker='o', linestyle='-', color='blue')
-plt.plot(x, H_test_11[2], marker='o', linestyle='-', color='blue')
-plt.plot(x, H_test_11[3], marker='o', linestyle='-', color='blue')
-plt.plot(x, H_found_11[0], marker='o', linestyle='-', color='red')
-plt.plot(x, H_found_11[1], marker='o', linestyle='-', color='red')
-plt.plot(x, H_found_11[2], marker='o', linestyle='-', color='red')
-plt.plot(x, H_found_11[3], marker='o', linestyle='-', color='red')
-plt.xlabel("x")
-plt.ylabel("f(x)")
-plt.title("11th update")
-print("W of the 11th update is = ")
-print(W_found_11)
-print("H of the 11th update is = ")
-print(H_found_11)
-# Show the graph
-plt.show()
-
-
-
-#twelveth update verification
-W_test_12 = np.array([[1, 0, 0, 1],
-                     [1, 0, 0, 0],
-                     [0, 1, 0, 0],
-                     [0, 1, 1, 0]])
-H_test_12 = np.array([[0, 1, 0, 0, 0, 0, 0, 0, 0, 0],
-                     [0, 0, 0, 1, 0, 0, 0, 0, 0, 0],
-                     [0, 0, 0, 0, 0, 1, 0, 0, 0, 0],
-                     [0, 0, 0, 0, 0, 0, 0, 1, 0, 0]])
-V_test_12 = W_test_12 @ H_test_12
-W_found_12, H_found_12 = model.update(V_test_12)
-#graphical representation
-plt.plot(x, H_test_12[0], marker='o', linestyle='-', color='blue')
-plt.plot(x, H_test_12[1], marker='o', linestyle='-', color='blue')
-plt.plot(x, H_test_12[2], marker='o', linestyle='-', color='blue')
-plt.plot(x, H_test_12[3], marker='o', linestyle='-', color='blue')
-plt.plot(x, H_found_12[0], marker='o', linestyle='-', color='red')
-plt.plot(x, H_found_12[1], marker='o', linestyle='-', color='red')
-plt.plot(x, H_found_12[2], marker='o', linestyle='-', color='red')
-plt.plot(x, H_found_12[3], marker='o', linestyle='-', color='red')
-plt.xlabel("x")
-plt.ylabel("f(x)")
-plt.title("12th update")
-print("W of the 12th update is = ")
-print(W_found_12)
-print("H of the 12th update is = ")
-print(H_found_12)
-# Show the graph
-plt.show()
-
-
-
-#thirteenth update verification
-W_test_13 = np.array([[1, 0, 0, 1],
-                     [1, 0, 0, 0],
-                     [0, 1, 0, 0],
-                     [0, 1, 1, 0]])
-H_test_13 = np.array([[0, 1, 0, 0, 0, 0, 0, 0, 0, 0],
-                     [0, 0, 0, 1, 0, 0, 0, 0, 0, 0],
-                     [0, 0, 0, 0, 0, 1, 0, 0, 0, 0],
-                     [0, 0, 0, 0, 0, 0, 0, 1, 0, 0]])
-V_test_13 = W_test_13 @ H_test_13
-W_found_13, H_found_13 = model.update(V_test_13)
-#graphical representation
-plt.plot(x, H_test_13[0], marker='o', linestyle='-', color='blue')
-plt.plot(x, H_test_13[1], marker='o', linestyle='-', color='blue')
-plt.plot(x, H_test_13[2], marker='o', linestyle='-', color='blue')
-plt.plot(x, H_test_13[3], marker='o', linestyle='-', color='blue')
-plt.plot(x, H_found_13[0], marker='o', linestyle='-', color='red')
-plt.plot(x, H_found_13[1], marker='o', linestyle='-', color='red')
-plt.plot(x, H_found_13[2], marker='o', linestyle='-', color='red')
-plt.plot(x, H_found_13[3], marker='o', linestyle='-', color='red')
-plt.xlabel("x")
-plt.ylabel("f(x)")
-plt.title("13th update")
-print("W of the 13th update is = ")
-print(W_found_13)
-print("H of the 13th update is = ")
-print(H_found_13)
-# Show the graph
-plt.show()
-
-
-#fourteenth update verification
-W_test_14 = np.array([[1, 0, 0, 1],
-                     [1, 0, 0, 0],
-                     [0, 1, 0, 0],
-                     [0, 1, 1, 0]])
-H_test_14 = np.array([[0, 1, 0, 0, 0, 0, 0, 0, 0, 0],
-                     [0, 0, 0, 1, 0, 0, 0, 0, 0, 0],
-                     [0, 0, 0, 0, 0, 1, 0, 0, 0, 0],
-                     [0, 0, 0, 0, 0, 0, 0, 1, 0, 0]])
-V_test_14 = W_test_14 @ H_test_14
-W_found_14, H_found_14 = model.update(V_test_14)
-#graphical representation
-plt.plot(x, H_test_14[0], marker='o', linestyle='-', color='blue')
-plt.plot(x, H_test_14[1], marker='o', linestyle='-', color='blue')
-plt.plot(x, H_test_14[2], marker='o', linestyle='-', color='blue')
-plt.plot(x, H_test_14[3], marker='o', linestyle='-', color='blue')
-plt.plot(x, H_found_14[0], marker='o', linestyle='-', color='red')
-plt.plot(x, H_found_14[1], marker='o', linestyle='-', color='red')
-plt.plot(x, H_found_14[2], marker='o', linestyle='-', color='red')
-plt.plot(x, H_found_14[3], marker='o', linestyle='-', color='red')
-plt.xlabel("x")
-plt.ylabel("f(x)")
-plt.title("14th update")
-print("W of the 14th update is = ")
-print(W_found_14)
-print("H of the 14th update is = ")
-print(H_found_14)
-# Show the graph
-plt.show()
+    #graphical representation of the H_found compared with the original H matrix
+    plt.subplot(2,1,2)
+    for j in range(H_found.shape[0]):
+        x = np.linspace(0, model.V.shape[1] , model.V.shape[1])
+        plt.plot(x, H_test[j], 'o-', color='blue')
+        plt.plot(x, H_found[j], 'o-', color='red')
+    plt.title("components of the H matrix(activation matrix)")
+    plt.xlabel("samples")
+    plt.ylabel("sinergy activations")
+    plt.tight_layout()
+    plt.show()
