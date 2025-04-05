@@ -197,7 +197,7 @@ wave1 = np.maximum(np.sin(x), 0)
 wave2 = np.maximum(np.sin(x + np.pi/2), 0)
 wave3 = np.maximum(np.sin(x + np.pi), 0)
 wave4 = np.maximum(np.sin(x + 3*np.pi/2), 0)
-H_test = np.array([wave1, wave2, wave3])
+H_test = np.array([wave1, wave2, wave3, wave4])
 V_test = W_test @ H_test
 
 #graphical representation section
