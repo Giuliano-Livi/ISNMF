@@ -82,7 +82,7 @@ class ISNMF:
             
             # Update H
             numerator_H = self.W.T @ self.V
-            denominator_H = self.W.T @ self.W @ self.H + self.gamma*(self.H) * 1e-1
+            denominator_H = self.W.T @ self.W @ self.H + self.gamma*(self.H) * 1e-3
             self.H *= numerator_H / (denominator_H + 1e-10)
             self.H = np.maximum(self.H, self.epsilon)
             
@@ -161,7 +161,7 @@ def generate_noise(noise_std, m, n):
     return g_E
 
 #model training using the rep0_power.bag
-M = extract_M_matrix_from_dataset('dataset/rep0_power.bag')
+M = extract_M_matrix_from_dataset('dataset/rep0_ulnar.bag')
 r = 3
 model = ISNMF(M, r, beta=32, gamma=32, mu=0.95, epsilon=1e-5, t_max=200)
 
@@ -200,7 +200,7 @@ for i in range(2):
     plt.show()
 
 #test of the model using the rep1_power.bag
-M_test = extract_M_matrix_from_dataset('dataset/rep1_power.bag')
+M_test = extract_M_matrix_from_dataset('dataset/rep1_ulnar.bag')
 H_found = model.test(M_test)
 #graphical representation of the M_test input matrix
 plt.figure(figsize=(8, 9)) 
