@@ -119,24 +119,24 @@ def avaraging(array, point_to_avarage):
 
 
 #test section
-M = extract_M_matrix_from_dataset('dataset/rep0_power.bag')
+V = extract_M_matrix_from_dataset('dataset/rep0_power.bag')
 r = 2 #number of synergies
 
 #using the ISNMF algorithm to extract the synergies
-model = ISNMF(M, r, beta=32, gamma=32, mu=0.95, epsilon=1e-5, t_max=200)
+model = ISNMF(V, r, beta=32, gamma=32, mu=0.95, epsilon=1e-5, t_max=200)
 
 #graphical representation section
 #test using only 2 synergies
 for i in range(2):
-    W_found, H_found = model.update(M)
+    W_found, H_found = model.update(V)
 
     #graphical representation of the M input matrix
     plt.figure(figsize=(8, 9)) 
     plt.subplot(3,1,1)
     for j in range(model.V.shape[0]):
-        x = np.linspace(0, M.shape[1] , M.shape[1])
+        x = np.linspace(0, V.shape[1] , V.shape[1])
         plt.plot(x, model.V[j], linestyle='-', label='muscle {}'.format(j))
-    plt.title("components of the M input matrix")
+    plt.title("components of the V input matrix")
     plt.xlabel("samples")
     plt.ylabel("muscles activations")
     plt.legend(loc='best', fontsize='small', markerscale=1)
@@ -154,7 +154,7 @@ for i in range(2):
     #graphical representation of the H_found matrix
     plt.subplot(3,1,3)
     for j in range(H_found.shape[0]):
-        x = np.linspace(0, M.shape[1] , M.shape[1])
+        x = np.linspace(0, V.shape[1] , V.shape[1])
         H_found[j] = avaraging(H_found[j], 20)
         plt.plot(x, H_found[j], linestyle='-')
     plt.title("components of the H matrix(activation matrix)")
@@ -167,17 +167,17 @@ for i in range(2):
 #test using 3 synergies
 for i in range(2):
     if i == 0:
-        W_found, H_found = model.update(M, "add")
+        W_found, H_found = model.update(V, "add")
     else:
-        W_found, H_found = model.update(M)
+        W_found, H_found = model.update(V)
 
     #graphical representation of the M input matrix
     plt.figure(figsize=(8, 9)) 
     plt.subplot(3,1,1)
     for j in range(model.V.shape[0]):
-        x = np.linspace(0, M.shape[1] , M.shape[1])
+        x = np.linspace(0, V.shape[1] , V.shape[1])
         plt.plot(x, model.V[j], linestyle='-', label='muscle {}'.format(j))
-    plt.title("components of the M input matrix")
+    plt.title("components of the V input matrix")
     plt.xlabel("samples")
     plt.ylabel("muscles activations")
     plt.legend(loc='best', fontsize='small', markerscale=1)
@@ -195,7 +195,7 @@ for i in range(2):
     #graphical representation of the H_found matrix
     plt.subplot(3,1,3)
     for j in range(H_found.shape[0]):
-        x = np.linspace(0, M.shape[1] , M.shape[1])
+        x = np.linspace(0, V.shape[1] , V.shape[1])
         H_found[j] = avaraging(H_found[j], 50)
         plt.plot(x, H_found[j], linestyle='-')
     plt.title("components of the H matrix(activation matrix)")
@@ -208,17 +208,17 @@ for i in range(2):
 #test using 4 synergies
 for i in range(2):
     if i == 0:
-        W_found, H_found = model.update(M, "add")
+        W_found, H_found = model.update(V, "add")
     else:
-        W_found, H_found = model.update(M)
+        W_found, H_found = model.update(V)
 
     #graphical representation of the M input matrix
     plt.figure(figsize=(8, 9)) 
     plt.subplot(3,1,1)
     for j in range(model.V.shape[0]):
-        x = np.linspace(0, M.shape[1] , M.shape[1])
+        x = np.linspace(0, V.shape[1] , V.shape[1])
         plt.plot(x, model.V[j], linestyle='-', label='muscle {}'.format(j))
-    plt.title("components of the M input matrix")
+    plt.title("components of the V input matrix")
     plt.xlabel("samples")
     plt.ylabel("muscles activations")
     plt.legend(loc='best', fontsize='small', markerscale=1)
@@ -236,7 +236,7 @@ for i in range(2):
     #graphical representation of the H_found matrix
     plt.subplot(3,1,3)
     for j in range(H_found.shape[0]):
-        x = np.linspace(0, M.shape[1] , M.shape[1])
+        x = np.linspace(0, V.shape[1] , V.shape[1])
         H_found[j] = avaraging(H_found[j], 50)
         plt.plot(x, H_found[j], linestyle='-')
     plt.title("components of the H matrix(activation matrix)")

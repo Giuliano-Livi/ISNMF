@@ -74,6 +74,12 @@ class ISNMF:
             
             # Update H
             numerator_H = self.W.T @ self.V
+            '''
+            if np.any(self.gamma *(self.H) ** -0.5 != 0):
+                print("no zero element at update {}".format(t))
+                denominator_H = self.W.T @ self.W @ self.H + self.gamma*(self.H) ** -0.5
+            else:
+            '''
             denominator_H = self.W.T @ self.W @ self.H + self.gamma*(self.H) * 1e-1 #+ self.gamma*(self.H) ** -0.5
             self.H *= numerator_H / (denominator_H + 1e-10)
             self.H = np.maximum(self.H, self.epsilon)

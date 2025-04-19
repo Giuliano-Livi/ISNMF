@@ -41,7 +41,7 @@ class ISNMF:
         #number of the update
         self.m = 0
 
-    #function to update the model when new samples arrives
+    #function to train the model
     def training(self, V, string=""):
         self.V = V
         self.m += 1
@@ -82,7 +82,13 @@ class ISNMF:
             
             # Update H
             numerator_H = self.W.T @ self.V
-            denominator_H = self.W.T @ self.W @ self.H + self.gamma*(self.H) * 1e-3
+            '''
+            if np.any(self.gamma *(self.H) ** -0.5 != 0):
+                print("no zero element at update {}".format(t))
+                denominator_H = self.W.T @ self.W @ self.H + self.gamma*(self.H) ** -0.5
+            else:
+            '''
+            denominator_H = self.W.T @ self.W @ self.H  + self.gamma*(self.H) * 1e-4
             self.H *= numerator_H / (denominator_H + 1e-10)
             self.H = np.maximum(self.H, self.epsilon)
             
@@ -109,22 +115,6 @@ class ISNMF:
             self.H = np.maximum(0, np.random.normal(loc=self.V_mean, scale=1, size=(self.r,self.k)))
 
         self.H = np.linalg.pinv(self.W) @ self.V
-
-        order = []
-        #check if a shift has happened in the brecelet
-        for i in range(self.V.shape[0]):
-            acc = np.zeros((self.V.shape[0]))
-            for j in range(self.V.shape[0]):
-                for k in range(self.V.shape[1]):
-                    if self.previous_V.shape[1] <= k:
-                        break
-                    acc[j] += np.abs(self.V[i][k] - self.previous_V[j][k])
-            order.append(np.argmin(acc))
-        if order == [1, 2, 3, 4, 5, 6, 7, 0] or order == [7, 0, 1, 2, 3, 4, 5, 6]:
-            print("shift detected, model recalibration")
-            model.training(self.V)
-            return self.H
-                    
         self.previous_V = self.V
         return self.H
 
@@ -161,20 +151,20 @@ def generate_noise(noise_std, m, n):
     return g_E
 
 #model training using the rep0_power.bag
-M = extract_M_matrix_from_dataset('dataset/rep0_ulnar.bag')
-r = 3
-model = ISNMF(M, r, beta=32, gamma=32, mu=0.95, epsilon=1e-5, t_max=200)
+V = extract_M_matrix_from_dataset('dataset/rep0_power.bag')
+r = 2
+model = ISNMF(V, r, beta=32, gamma=32, mu=0.95, epsilon=1e-5, t_max=200)
 
 #training the model on rep0_power.bag
 for i in range(2):
-    W_found, H_found = model.training(M)
+    W_found, H_found = model.training(V)
     #graphical representation of the M input matrix
     plt.figure(figsize=(8, 9)) 
     plt.subplot(3,1,1)
     for j in range(model.V.shape[0]):
-        x = np.linspace(0, M.shape[1] , M.shape[1])
+        x = np.linspace(0, V.shape[1] , V.shape[1])
         plt.plot(x, model.V[j], linestyle='-', label='muscle {}'.format(j))
-    plt.title("components of the M input matrix")
+    plt.title("components of the V input matrix")
     plt.xlabel("samples")
     plt.ylabel("muscles activations")
     plt.legend(loc='best', fontsize='small', markerscale=1)
@@ -186,11 +176,11 @@ for i in range(2):
     plt.title("components of the W matrix(activation matrix)")
     plt.xlabel("sinergy")
     plt.ylabel("muscles activation")
-    plt.ylim(-0.1, 7)
+    plt.ylim(-0.1, 2)
     #graphical representation of the H_found matrix
     plt.subplot(3,1,3)
     for j in range(H_found.shape[0]):
-        x = np.linspace(0, M.shape[1] , M.shape[1])
+        x = np.linspace(0, V.shape[1] , V.shape[1])
         H_found[j] = avaraging(H_found[j], 30)
         plt.plot(x, H_found[j], linestyle='-')
     plt.title("components of the H matrix(activation matrix)")
@@ -200,22 +190,22 @@ for i in range(2):
     plt.show()
 
 #test of the model using the rep1_power.bag
-M_test = extract_M_matrix_from_dataset('dataset/rep1_ulnar.bag')
-H_found = model.test(M_test)
+V_test = extract_M_matrix_from_dataset('dataset/rep1_power.bag')
+H_found = model.test(V_test)
 #graphical representation of the M_test input matrix
 plt.figure(figsize=(8, 9)) 
 plt.subplot(2,2,1)
 for j in range(model.V.shape[0]):
-    x = np.linspace(0, M_test.shape[1] , M_test.shape[1])
-    plt.plot(x, M_test[j], linestyle='-', label='muscle {}'.format(j))
-plt.title("components of the M input matrix")
+    x = np.linspace(0, V_test.shape[1] , V_test.shape[1])
+    plt.plot(x, V_test[j], linestyle='-', label='muscle {}'.format(j))
+plt.title("components of the V input matrix")
 plt.xlabel("samples")
 plt.ylabel("muscles activations")
 plt.legend(loc='best', fontsize='small', markerscale=1)
 #graphical representation of the W_found matrix
 plt.subplot(2,2,2)
 for j in range(H_found.shape[0]):
-    x = np.linspace(0, M_test.shape[1] , M_test.shape[1])
+    x = np.linspace(0, V_test.shape[1] , V_test.shape[1])
     H_found[j] = avaraging(H_found[j], 30)
     plt.plot(x, H_found[j], linestyle='-')
 plt.title("components of the H matrix(activation matrix)")
@@ -225,21 +215,21 @@ plt.ylabel("sinergy activations")
 
 
 #test of the model using the rep1_power.bag with shifted matrix
-shifted_M = np.roll(M_test, shift=-1, axis=0)
-H_found_shifted = model.test(shifted_M)
-#graphical representation of the M_test input matrix
+shifted_V = np.roll(V_test, shift=-1, axis=0)
+H_found_shifted = model.test(shifted_V)
+#graphical representation of the V_test input matrix
 plt.subplot(2,2,3)
 for j in range(model.V.shape[0]):
-    x = np.linspace(0, M_test.shape[1] , M_test.shape[1])
-    plt.plot(x, shifted_M[j], linestyle='-', label='muscle {}'.format(j))
-plt.title("components of the M input matrix")
+    x = np.linspace(0, V_test.shape[1] , V_test.shape[1])
+    plt.plot(x, shifted_V[j], linestyle='-', label='muscle {}'.format(j))
+plt.title("components of the V input matrix")
 plt.xlabel("samples")
 plt.ylabel("muscles activations")
 plt.legend(loc='best', fontsize='small', markerscale=1)
-#graphical representation of the W_found matrix
+#graphical representation of the H_found matrix
 plt.subplot(2,2,4)
 for j in range(H_found_shifted.shape[0]):
-    x = np.linspace(0, M_test.shape[1] , M_test.shape[1])
+    x = np.linspace(0, V_test.shape[1] , V_test.shape[1])
     H_found_shifted[j] = avaraging(H_found_shifted[j], 30)
     plt.plot(x, H_found_shifted[j], linestyle='-')
 plt.title("components of the H matrix(activation matrix)")
